@@ -5,10 +5,13 @@ export const DEFAULT_PICTURE_URL = '/assets/default-profile-pic.svg';
 export interface Profile {
   name?: string;
   picture?: string;
+  pictureId?: string;
 }
 
 export enum MessageType {
-  TEXT = <any>'text'
+  TEXT = <any>'text',
+  LOCATION = <any>'location',
+  PICTURE = <any>'picture'
 }
 
 export interface Chat {
@@ -31,4 +34,26 @@ export interface Message {
 
 export interface User extends Meteor.User {
   profile?: Profile;
+}
+
+export interface Location {
+  lat: number;
+  lng: number;
+  zoom: number;
+}
+
+export interface Picture {
+  _id?: string;
+  complete?: boolean;
+  extension?: string;
+  name?: string;
+  progress?: number;
+  size?: number;
+  store?: string;
+  token?: string;
+  type?: string;
+  uploadedAt?: Date;
+  uploading?: boolean;
+  url?: string;
+  userId?: string;
 }

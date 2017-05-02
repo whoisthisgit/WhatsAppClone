@@ -61,7 +61,8 @@ Meteor.methods({
       'User must be logged-in to create a new chat');
 
     check(profile, {
-      name: nonEmptyString
+      name: nonEmptyString,
+      pictureId: Match.Maybe(nonEmptyString)
     });
 
     Meteor.users.update(this.userId, {
@@ -73,7 +74,7 @@ Meteor.methods({
     if (!this.userId) throw new Meteor.Error('unauthorized',
       'User must be logged-in to create a new chat');
 
-    check(type, Match.OneOf(String, [ MessageType.TEXT ]));
+    check(type, Match.OneOf(String, [ MessageType.TEXT, MessageType.LOCATION ]));
     check(chatId, nonEmptyString);
     check(content, nonEmptyString);
 

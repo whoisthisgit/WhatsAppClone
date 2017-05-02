@@ -1,12 +1,15 @@
 import { Component, OnDestroy, OnInit, ElementRef } from '@angular/core';
-import { NavParams, PopoverController } from 'ionic-angular';
+import { NavParams, PopoverController, ModalController } from 'ionic-angular';
 import { MeteorObservable } from 'meteor-rxjs';
 import { _ } from 'meteor/underscore';
 import * as Moment from 'moment';
 import { Observable, Subscription, Subscriber } from 'rxjs';
 import { Messages } from '../../../../imports/collections';
-import { Chat, Message, MessageType } from '../../../../imports/models';
+import { Chat, Message, MessageType, Location } from '../../../../imports/models';
+import { PictureService } from '../../services/picture';
+import { MessagesAttachmentsComponent } from './messages-attachments';
 import { MessagesOptionsComponent } from './messages-options';
+import { ShowPictureComponent } from './show-picture';
 import template from './messages.html';
 
 @Component({
@@ -29,7 +32,9 @@ export class MessagesPage implements OnInit, OnDestroy {
   constructor(
     navParams: NavParams,
     private el: ElementRef,
-    private popoverCtrl: PopoverController
+    private popoverCtrl: PopoverController,
+    private pictureService: PictureService,
+    private modalCtrl: ModalController
   ) {
     this.selectedChat = <Chat>navParams.get('chat');
     this.title = this.selectedChat.title;
@@ -214,5 +219,65 @@ export class MessagesPage implements OnInit, OnDestroy {
       // Zero the input field
       this.message = '';
     });
+  }
+  
+  sendLocationMessage(location: Location): void {
+    MeteorObservable.call('addMessage', MessageType.LOCATION,
+      this.selectedChat._id,
+      `${location.lat},${location.lng},${location.zoom}`
+    ).zone().subscribe(() => {
+      // Zero the input field
+      this.message = '';
+    });
+  }
+
+  showAttachments(): void {
+    const popover = this.popoverCtrl.create(MessagesAttachmentsComponent, {
+      chat: this.selectedChat
+    }, {
+      cssClass: 'attachments-popover'
+    });
+
+    popover.onDidDismiss((params) => {
+      if (params) {
+        if (params.messageType === MessageType.LOCATION) {
+          const location = params.selectedLocation;
+          this.sendLocationMessage(location);
+        }
+        else if (params.messageType === MessageType.PICTURE) {
+          const blob: Blob = params.selectedPicture;
+          this.sendPictureMessage(blob);
+        }
+      }
+    });
+
+    popover.present();
+  }
+
+  sendPictureMessage(blob: Blob): void {
+    this.pictureService.upload(blob).then((picture) => {
+      MeteorObservable.call('addMessage', MessageType.PICTURE,
+        this.selectedChat._id,
+        picture.url
+      ).zone().subscribe();
+    });
+  }
+
+  getLocation(locationString: string): Location {
+    const splitted = locationString.split(',').map(Number);
+
+    return <Location>{
+      lat: splitted[0],
+      lng: splitted[1],
+      zoom: Math.min(splitted[2] || 0, 19)
+    };
+  }
+  
+  showPicture({ target }: Event) {
+    const modal = this.modalCtrl.create(ShowPictureComponent, {
+      pictureSrc: (<HTMLImageElement>target).src
+    });
+
+    modal.present();
   }
 }
